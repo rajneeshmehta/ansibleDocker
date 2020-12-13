@@ -1,0 +1,49 @@
+---
+- hosts: target
+  tasks: 
+    - name: get repository for docker-ce
+      yum_repository:
+        name: docker-ce
+        description: repo for installing docker-ce in centos8
+        baseurl: "https://download.docker.com/linux/centos/8/x86_64/stable/"
+        state: present
+    - name: install docker-ce with dnf
+      dnf: 
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+        skip_broken: yes
+    - name: start docker service
+      systemd: 
+        name: docker
+        state: started
+        enabled: yes
+    - name: installed Docker SDK
+      pip:
+        name: docker
+        state: present
+    - name: pull docker image
+      docker_image:
+        name: httpd
+        source: pull
+        state: present
+    - name: copy html code from local folder
+      copy:
+        src: "/root/lwAnsible/ansibleclass/webCode/home.html"
+        dest: "/root/webCode"
+    - name: run docker container
+      docker_container: 
+        name: webserver
+        image: httpd
+        state: started
+        auto_remove: yes
+        tty: true
+        detach: yes
+        volumes: 
+          - /root/webCode/:/usr/local/apache2/htdocs/
+        ports :
+            - 8080:80
+
+        
