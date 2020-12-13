@@ -1,49 +1,64 @@
 ---
 - hosts: target
+  vars:
+    - yumRepoName: docker-ce
+    - yumRepoURL: https://download.docker.com/linux/centos/8/x86_64/stable/"
+    - yumRepoState: present
+    - dnfPackageNameList: [docker-ce, docker-ce-cli, containerd.io]
+    - systemdServiceName: docker
+    - systemdServiceState: started
+    - pipPackageName: docker
+    - dockerImageName: httpd
+    - copyFileSource: "/root/lwAnsible/ansibleclass/webCode/home.html"
+    - copyFileDest: "/root/webCode/"
+    - dockerContainerName: webserver
+    - dockerContainerState: started
+    - dockerContainerVolSource: /root/webCode/
+    - dockerContainerVolDest: "/usr/local/apache2/htdocs/"
+    - dockerContainerSourcePort: 8080
+    - dockerContainerDestPort: 80
   tasks: 
     - name: get repository for docker-ce
       yum_repository:
-        name: docker-ce
+        name: "{{ yumRepoName }}"
         description: repo for installing docker-ce in centos8
-        baseurl: "https://download.docker.com/linux/centos/8/x86_64/stable/"
-        state: present
+        baseurl: "{{ yumRepoURL }}"
+        state: "{{ yumRepoState }}"
     - name: install docker-ce with dnf
       dnf: 
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
+        name: "{{ dnfPackageNameList }}"
         state: present
         skip_broken: yes
     - name: start docker service
       systemd: 
-        name: docker
-        state: started
+        name: "{{ systemdServiceName }}"
+        state: "{{ systemdServiceState }}"
         enabled: yes
     - name: installed Docker SDK
       pip:
-        name: docker
+        name: "{{ pipPackageName }}"
         state: present
     - name: pull docker image
       docker_image:
-        name: httpd
+        name: "{{ dockerImageName }}"
         source: pull
         state: present
     - name: copy html code from local folder
       copy:
-        src: "/root/lwAnsible/ansibleclass/webCode/home.html"
-        dest: "/root/webCode"
+        src: "{{ copyFileSource }}"
+        dest: "{{ copyFileDest }}"
     - name: run docker container
       docker_container: 
-        name: webserver
-        image: httpd
-        state: started
+        name: "{{ dockerContainerName }}"
+        image: "{{ dockerImageName }}"
+        state: "{{ dockerContainerState }}"
         auto_remove: yes
         tty: true
         detach: yes
         volumes: 
-          - /root/webCode/:/usr/local/apache2/htdocs/
+          - /root/webCode:/usr/local/apache2/htdocs/
+          # - '"{{ dockerContainerVolSource }}": "{{ dockerContainerVolDest }}"'
+
         ports :
             - 8080:80
-
-        
+            # - '"{{ dockerContainerSourcePort }}": "{{ dockerContainerDestPort }}"'
